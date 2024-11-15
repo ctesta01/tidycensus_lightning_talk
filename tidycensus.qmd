@@ -194,5 +194,23 @@ saveWidget(m, "boston.html")
  - The **tidycensus** website: <https://walker-data.com/tidycensus/>
  - *Understanding Error and Determining Statistical Significance, ACS Handbook*
  <https://www.census.gov/content/dam/Census/library/publications/2018/acs/acs_general_handbook_2018_ch07.pdf>
+ - *The Public Health Disparities Geocoding Project 2.0 Handbook* <https://phdgp.github.io/PHDGP2.0/>
 
 </small>
+
+## Find these slides online on GitHub
+
+:::{.columns}
+:::{.column width='60%'}
+![](slide_cover.png)
+
+<small>
+<https://github.com/ctesta01/tidycensus_lightning_talk/> <br> <br>
+<https://ctesta01.github.io/tidycensus_lightning_talk/tidycensus.html>
+</small>
+
+:::
+:::{.column width='40%'}
+![](qr.png)
+:::
+:::
