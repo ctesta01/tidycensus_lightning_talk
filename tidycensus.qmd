@@ -1,0 +1,198 @@
+---
+title: "Tidycensus and Mapping: A U.S.-Based Geographer's Best Friends"
+author: "Christian Testa"
+format: revealjs
+title-slide-attributes:
+    data-background-image: "map_bg.jpg"
+    # data-background-size: contain
+    data-background-opacity: ".4"
+    data-background-color: "black"
+include-in-header:
+  - text: |
+      <style>
+      #title-slide .title {
+      text-shadow: black 1px 0 10px;
+      }
+      #title-slide .quarto-title-authors {
+      text-shadow: black 1px 0 10px;
+      }
+      </style>
+---
+
+## Intro to Tidycensus 
+
+:::{.columns}
+
+::: {.column width="85%"}
+<small>
+What is tidycensus? 
+
+> `tidycensus` is an R package that allows users to interface with a select number of the US Census Bureau’s data APIs and return tidyverse-ready data frames, optionally with simple feature geometry included.
+
+```r
+install.packages("tidycensus")
+```
+
+You do need to register for an API key
+<https://api.census.gov/data/key_signup.html>
+
+It usually takes 1-3 days to get an API key sent to you. 
+</small>
+:::
+
+::: {.column width="15%"}
+![the tidycensus package logo](https://walker-data.com/tidycensus/logo.png)
+:::
+
+:::
+
+# Basic Setup {data-background-color='#ffeaa7'}
+
+Once you have a US Census API key, start your R session and run
+
+```r
+library(tidycensus)
+library(tidyverse)
+
+census_api_key("YOUR API KEY GOES HERE")
+```
+
+## Getting Data {data-background-color='#ffeaa7'}
+
+Now you can pull data from common US Census data products like the 
+Decennial Census (`get_decennial()`), American Community Survey (`get_acs()`), the Population Estimation Project, 
+and others. 
+
+<small>
+```r
+us_congressional_district_popsize <- get_decennial(
+  geography = 'congressional district', variables = c("P1_001N"), sumfile = "dhc")
+
+> head(us_congressional_district_popsize)
+# A tibble: 6 × 4
+  GEOID NAME                                                     variable  value
+  <chr> <chr>                                                    <chr>     <dbl>
+1 2614  Congressional District 14 (116th Congress), Michigan     P1_001N  691502
+2 2611  Congressional District 11 (116th Congress), Michigan     P1_001N  757811
+3 2612  Congressional District 12 (116th Congress), Michigan     P1_001N  747156
+4 2613  Congressional District 13 (116th Congress), Michigan     P1_001N  674566
+5 26ZZ  Congressional Districts not defined (116th Congress), M… P1_001N       0
+6 2701  Congressional District 1 (116th Congress), Minnesota     P1_001N  690726
+```
+</small>
+<small>
+<https://walker-data.com/tidycensus/articles/basic-usage.html>
+</small>
+
+--- 
+
+## How do you know what variables to request? {data-background-color='#ffeaa7'}
+
+<https://api.census.gov/data/2022/acs/acs5/variables.html> <br>
+<https://api.census.gov/data/2020/dec/pl/variables.html>
+
+Or
+
+```r
+# ACS variables in 2022
+acs2022_variables_available <- load_variables(2022, "acs5")
+
+# Decennial 2020 Demographic and Housing Characteristics
+decennial_dch_variables_available <- load_variables(2020, "dhc")
+```
+
+## How do we get spatial data? {data-background-color="#ffcccc"}
+
+:::{.columns}
+:::{.column width='60%'}
+<small>
+```r
+library(tidycensus)
+library(tidyverse)
+options(tigris_use_cache = TRUE)
+
+ny <- get_acs(geography = "tract", 
+              variables = "B19013_001", 
+              state = "NY", 
+              county = "New York", 
+              year = 2020, 
+              geometry = TRUE)
+
+ggplot(ny, aes(fill = estimate)) + 
+  geom_sf() + 
+  theme_void() + 
+  scale_fill_viridis_c(labels = scales::dollar) + 
+  ggtitle("Median Household Income", "2020 Inflation Adjusted Dollars")
+```
+</small>
+:::
+
+:::{.column width='40%'}
+![](ny_median_household_income.png)
+:::
+:::
+
+## Let's do Interactive Maps! {data-background-color='#ffcccc'}
+
+:::{.columns}
+:::{.column width='65%'}
+<small>
+```r
+library(leaflet)
+library(stringr)
+library(sf)
+
+boston_area <- get_acs(geography = "tract", 
+              variables = "B19013_001", 
+              state = "MA", 
+              county = c("Suffolk", "Norfolk", "Middlesex"), 
+              year = 2020, 
+              geometry = TRUE)
+
+pal <- colorBin(palette = "viridis", domain = boston_area$estimate, na.color = "#d2dae2")
+
+boston_area %>%
+    st_transform(crs = "+init=epsg:4326") %>%
+    leaflet() %>%
+    addProviderTiles(provider = "CartoDB.Positron") %>%
+    addPolygons(popup = ~ paste0(NAME, ": ", scales::dollar_format()(estimate)),
+                stroke = FALSE,
+                smoothFactor = 0,
+                fillOpacity = 0.6,
+                color = ~ pal(estimate)) %>%
+    addLegend("bottomright", 
+              pal = pal, 
+              values = ~ estimate,
+              title = "Median Household Income in 2020-Inflation Adjusted Dollars",
+              labFormat = labelFormat(prefix = "$"),
+              opacity = 1)
+```
+<https://juliasilge.com/blog/using-tidycensus/>
+</small>
+:::
+:::{.column width='35%'}
+[![](boston.png)](boston.html)
+:::
+:::
+
+## How to Save It? {data-background-image="#ffcccc"}
+
+```r
+library(htmlwidgets)
+
+m <- leaflet() # ... 
+
+saveWidget(m, "boston.html")
+```
+
+## Learn More {data-background-image="#"}
+
+<small>
+
+![](https://walker-data.com/tidycensus/articles/other-datasets_files/figure-html/unnamed-chunk-4-1.png){height='400px'}
+
+ - The **tidycensus** website: <https://walker-data.com/tidycensus/>
+ - *Understanding Error and Determining Statistical Significance, ACS Handbook*
+ <https://www.census.gov/content/dam/Census/library/publications/2018/acs/acs_general_handbook_2018_ch07.pdf>
+
+</small>
